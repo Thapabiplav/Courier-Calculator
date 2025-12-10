@@ -6,8 +6,11 @@ export default function RateCalculatorForm() {
   const [serviceType, setServiceType] = useState("");
   const [selectedKg, setSelectedKg] = useState("");
   const [total, setTotal] = useState(null);
-
   const [ratePerKg, setRatePerKg] = useState(null);
+
+  // NEW: store breakdown text
+  const [formulaLabel, setFormulaLabel] = useState("");
+  const [formulaDetails, setFormulaDetails] = useState("");
 
   const countryList = [
     "United Kingdom",
@@ -37,6 +40,8 @@ export default function RateCalculatorForm() {
   const handleCountrySelect = (country) => {
     setSelectedCountry(country);
     setTotal(null);
+    setFormulaLabel("");
+    setFormulaDetails("");
     setRatePerKg(null);
 
     if (ratesData.europe_regions.europe_a.includes(country)) {
@@ -92,20 +97,7 @@ export default function RateCalculatorForm() {
       return;
     }
 
-    let rpk = null;
-
-    if (kg < 10 && serviceType === "india") {
-      rpk = 750;
-    } else if (kg < 10 && serviceType === "hong_kong") {
-      rpk = 650;
-    } else {
-      if (kg <= 9.5) {
-        rpk = getSmallRate(kg);
-      } else {
-        rpk = getBulkRate(kg);
-      }
-    }
-
+    let rpk = kg <= 9.5 ? getSmallRate(kg) : getBulkRate(kg);
     if (!rpk) {
       setTotal(null);
       return;
@@ -113,8 +105,44 @@ export default function RateCalculatorForm() {
 
     setRatePerKg(rpk);
 
-    const totalPrice = rpk * kg + kg * 200 + 750;
-    setTotal(Math.round(totalPrice));
+    let finalAmount = 0;
+    let breakdown = "";
+
+    // ---------------------------
+    // SPECIAL CASE 1: India & Hong Kong (<10 KG)
+    // ---------------------------
+    if (kg < 10 && (serviceType === "india" || serviceType === "hong_kong")) {
+      finalAmount = rpk * kg + kg * 200 + 750;
+      setFormulaLabel("Formula Used (India / Hong Kong Below 10 KG):");
+      breakdown = `(${rpk} × ${kg}) + (${kg} × 200) + 750`;
+    }
+    // ---------------------------
+    // SPECIAL CASE 2: Malaysia <= 4.5 KG
+    // ---------------------------
+    else if (serviceType === "malaysia" && kg <= 4.5) {
+      finalAmount = rpk * kg + kg * 200 + 750;
+      setFormulaLabel("Formula Used (Malaysia ≤ 4.5 KG):");
+      breakdown = `(${rpk} × ${kg}) + (${kg} × 200) + 750`;
+    }
+    // ---------------------------
+    // NORMAL CASE (<10 KG)
+    // ---------------------------
+    else if (kg < 10) {
+      finalAmount = rpk + kg * 200 + 750;
+      setFormulaLabel("Formula Used (Normal Case Below 10 KG):");
+      breakdown = `${rpk} + (${kg} × 200) + 750`;
+    }
+    // ---------------------------
+    // BULK CASE
+    // ---------------------------
+    else {
+      finalAmount = rpk * kg + kg * 200 + 750;
+      setFormulaLabel("Formula Used (10 KG & Above):");
+      breakdown = `(${rpk} × ${kg}) + (${kg} × 200) + 750`;
+    }
+
+    setFormulaDetails(breakdown);
+    setTotal(Math.round(finalAmount));
   };
 
   return (
@@ -168,7 +196,7 @@ export default function RateCalculatorForm() {
         </div>
       )}
 
-      {/* 🔥 CALCULATION BREAKDOWN PART */}
+      {/* FULL BREAKDOWN */}
       {total !== null && (
         <div className="mt-4 p-4 bg-gray-100 rounded border">
           <h3 className="font-bold text-lg mb-2">Calculation Breakdown:</h3>
@@ -177,26 +205,26 @@ export default function RateCalculatorForm() {
             Rate per KG: <b>{ratePerKg}</b>
           </p>
           <p>
-            KG: <b>{selectedKg}</b>
-          </p>
-
-          <p className="mt-2">
-            <b>Rate × KG:</b> {ratePerKg} × {selectedKg} ={" "}
-            {ratePerKg * parseFloat(selectedKg)}
+            Qty: <b>{selectedKg}</b>
           </p>
 
           <p>
-            <b>Typing Charge:</b> {selectedKg} × 200 ={" "}
-            {parseFloat(selectedKg) * 200}
+            Our Cost calculation: <b>{selectedKg} *200= {selectedKg *200}</b>
           </p>
 
-          <p>
-            <b>Packing Charge:</b> 750
+          <p>Packaging Charge: <b> 750</b>
+
           </p>
 
           <hr className="my-2" />
 
-          <p className="font-bold">Total = (Rate × KG) + (KG × 200) + 750</p>
+          <p className="font-semibold text-blue-700">{formulaLabel}</p>
+
+          <p className="font-mono bg-white p-2 rounded border mt-1">
+            {formulaDetails}
+          </p>
+
+          <hr className="my-2" />
 
           <p className="font-bold text-blue-700 text-lg">
             Final Total = {total}
