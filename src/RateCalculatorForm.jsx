@@ -35,7 +35,7 @@ export default function RateCalculatorForm() {
     ...ratesData.europe_regions.europe_c,
   ];
 
-  const allKgValues = Array.from({ length: 50 }, (_, i) => (i + 1) * 0.5);
+  const allKgValues = Array.from({ length: 90 }, (_, i) => (i + 1) * 0.5);
 
   const handleCountrySelect = (country) => {
     setSelectedCountry(country);
